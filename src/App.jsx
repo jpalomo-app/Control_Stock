@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
 const SUPABASE_URL = "https://etjfgjpycfjqfmmtmiuf.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0amZnanB5Y2ZqcWZtbXRtaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNjQ5MzgsImV4cCI6MjA5NDc0MDkzOH0.KlQ3dAIGxQ6FFlJ1AI5wodNFPHw6CKOAxEzxTdO3aWo";
-const SERVICE_KEY  = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
 
 const C = {
   primary:"#6B2D8B", primaryDk:"#4A1E63", primaryLt:"#EDE5F5",
@@ -49,6 +48,21 @@ const api = {
   async signOut(token) {
     await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
       method:"POST", headers: this.h(token)
+    });
+  },
+  async createUser(email, password, full_name, role, token) {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${token}` },
+      body: JSON.stringify({ email, password, full_name, role })
+    });
+    return r.json();
+  },
+  async deleteAuthUser(id, token) {
+    await fetch(`${SUPABASE_URL}/functions/v1/create-user`, {
+      method:"DELETE",
+      headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${token}` },
+      body: JSON.stringify({ id })
     });
   }
 };
@@ -125,7 +139,6 @@ function Btn({ children, onClick, variant="primary", disabled=false, sx={} }) {
     outline: { background:"transparent",color:C.primary,border:`1.5px solid ${C.primary}` },
     ghost:   { background:C.bg,color:C.muted,border:`1.5px solid ${C.border}` },
     scan:    { background:C.primaryLt,color:C.primary,border:`1.5px solid ${C.border}` },
-    danger:  { background:"#FFEBEE",color:C.out,border:`1px solid ${C.out}30` },
   };
   return (
     <button onClick={onClick} disabled={disabled} style={{ padding:"9px 20px",borderRadius:8,cursor:disabled?"not-allowed":"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:disabled?.6:1,transition:"background .15s",...v[variant],...sx }}>{children}</button>
@@ -232,18 +245,8 @@ function UserModal({ session, onClose }) {
     if(newPass.length < 6){ setError("La contraseña debe tener al menos 6 caracteres"); return; }
     setSaving(true); setError(null); setSuccess(null);
     try {
-      const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "apikey": SERVICE_KEY,
-          "Authorization": `Bearer ${SERVICE_KEY}`
-        },
-        body: JSON.stringify({ email:newEmail, password:newPass, email_confirm:true })
-      });
-      const data = await r.json();
-      if(data.error||!data.id){ setError(data.msg||data.message||data.error||"Error al crear usuario"); setSaving(false); return; }
-      await api.post("user_profiles",{ id:data.id, full_name:newName, role:newRole }, session.token);
+      const data = await api.createUser(newEmail, newPass, newName, newRole, session.token);
+      if(data.error){ setError(data.error); setSaving(false); return; }
       setNewEmail(""); setNewPass(""); setNewName(""); setNewRole("operador");
       setSuccess(`Usuario ${newName} creado correctamente ✓`);
       await loadUsers();
@@ -253,11 +256,7 @@ function UserModal({ session, onClose }) {
 
   async function deleteUser(id) {
     if(!confirm("¿Eliminar este usuario?")) return;
-    await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${id}`,{
-      method:"DELETE",
-      headers:{ "apikey":SERVICE_KEY, "Authorization":`Bearer ${SERVICE_KEY}` }
-    });
-    await api.del("user_profiles",id,session.token);
+    await api.del("user_profiles", id, session.token);
     await loadUsers();
   }
 
@@ -279,7 +278,6 @@ function UserModal({ session, onClose }) {
         {success && <div style={{ color:C.ok, fontSize:12,marginBottom:12,background:C.okBg, padding:"8px 12px",borderRadius:6 }}>{success}</div>}
         <Btn onClick={createUser} disabled={saving} sx={{ width:"100%" }}>{saving?"Creando…":"Crear usuario"}</Btn>
       </div>
-
       <div style={{ color:C.muted,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10 }}>Usuarios existentes</div>
       {loading ? <div style={{ color:C.muted,fontSize:13,textAlign:"center",padding:16 }}>Cargando…</div> : (
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
@@ -392,8 +390,7 @@ export default function App() {
     try {
       await api.post("products",{name:form.name,sku:form.sku,category:form.category,stock:+form.stock||0,min:+form.min||0,price:0,unit:form.unit||"unidad"},session.token);
       await loadData(); setModal(null); showToast("Producto añadido ✓");
-    } catch { showToast("Error al guardar",C.out); }
-    setSaving(false);
+    } catch { showToast("Error al guardar",C.out); } setSaving(false);
   }
 
   async function saveEdit() {
@@ -401,8 +398,7 @@ export default function App() {
     try {
       await api.patch("products",selected.id,{name:form.name,sku:form.sku,category:form.category,stock:+form.stock,min:+form.min,unit:form.unit},session.token);
       await loadData(); setModal(null); showToast("Producto actualizado ✓");
-    } catch { showToast("Error al guardar",C.out); }
-    setSaving(false);
+    } catch { showToast("Error al guardar",C.out); } setSaving(false);
   }
 
   async function saveMove() {
@@ -414,8 +410,7 @@ export default function App() {
     if(!canManage) return;
     if(!confirm("¿Eliminar este producto?")) return; setSaving(true);
     try { await api.del("products",id,session.token); await loadData(); showToast("Producto eliminado"); }
-    catch { showToast("Error al eliminar",C.out); }
-    setSaving(false);
+    catch { showToast("Error al eliminar",C.out); } setSaving(false);
   }
 
   if (!session) return <LoginScreen onLogin={handleLogin} />;
@@ -462,7 +457,6 @@ export default function App() {
             <div style={{ color:C.muted,fontSize:13 }}>Cargando datos…</div>
           </div>
         ):(<>
-
           {/* Stats */}
           <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:28 }}>
             {[
@@ -563,7 +557,6 @@ export default function App() {
               </div>
             </div>
           )}
-
         </>)}
       </div>
 
