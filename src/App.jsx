@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
 const SUPABASE_URL = "https://etjfgjpycfjqfmmtmiuf.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0amZnanB5Y2ZqcWZtbXRtaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNjQ5MzgsImV4cCI6MjA5NDc0MDkzOH0.KlQ3dAIGxQ6FFlJ1AI5wodNFPHw6CKOAxEzxTdO3aWo";
+const SERVICE_KEY  = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
 
 const C = {
   primary:"#6B2D8B", primaryDk:"#4A1E63", primaryLt:"#EDE5F5",
@@ -12,7 +13,6 @@ const C = {
   out:"#C62828", outBg:"#FFEBEE",
 };
 
-// ── Supabase helpers ────────────────────────────────────────────────────────
 const api = {
   h: (token) => ({
     "Content-Type":"application/json",
@@ -65,7 +65,6 @@ const qrPayload  = sku => JSON.stringify({sku});
 const ROLE_LABELS = { admin:"Administrador", operador:"Operador", lectura:"Solo lectura" };
 const ROLE_COLORS = { admin:C.primary, operador:C.ok, lectura:C.muted };
 
-// ── UI primitives ───────────────────────────────────────────────────────────
 function QRImg({ sku, size=160 }) {
   return <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrPayload(sku))}&color=4A1E63&bgcolor=FFFFFF`} width={size} height={size} alt={`QR ${sku}`} style={{ display:"block", borderRadius:4 }} />;
 }
@@ -133,7 +132,7 @@ function Btn({ children, onClick, variant="primary", disabled=false, sx={} }) {
   );
 }
 
-// ── Login Screen ─────────────────────────────────────────────────────────────
+// ── Login ───────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -156,11 +155,10 @@ function LoginScreen({ onLogin }) {
   }
 
   return (
-    <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Inter','Segoe UI',sans-serif" }}>
+    <div style={{ minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Inter','Segoe UI',sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <div style={{ width:400, maxWidth:"94vw" }}>
-        {/* Logo */}
-        <div style={{ textAlign:"center", marginBottom:32 }}>
+      <div style={{ width:400,maxWidth:"94vw" }}>
+        <div style={{ textAlign:"center",marginBottom:32 }}>
           <div style={{ width:56,height:56,borderRadius:14,background:C.primary,display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:16 }}>
             <svg width="30" height="30" viewBox="0 0 20 20" fill="none">
               <rect x="2" y="2" width="7" height="7" rx="1.5" fill="white" opacity=".9"/>
@@ -169,29 +167,18 @@ function LoginScreen({ onLogin }) {
               <rect x="11" y="11" width="7" height="7" rx="1.5" fill="white" opacity=".3"/>
             </svg>
           </div>
-          <div style={{ fontWeight:700, fontSize:22, color:C.text }}>Control de Stock</div>
-          <div style={{ color:C.muted, fontSize:14, marginTop:4 }}>Sista S.A.</div>
+          <div style={{ fontWeight:700,fontSize:22,color:C.text }}>Control de Stock</div>
+          <div style={{ color:C.muted,fontSize:14,marginTop:4 }}>Sista S.A.</div>
         </div>
-
         <Card style={{ padding:32 }}>
-          <Field label="Email">
-            <Input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="usuario@sista.com.ar" />
-          </Field>
-          <Field label="Contraseña">
-            <Input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="••••••••" />
-          </Field>
-          {error && (
-            <div style={{ background:C.outBg, border:`1px solid ${C.out}30`, borderRadius:8, padding:"10px 14px", color:C.out, fontSize:13, marginBottom:16 }}>
-              {error}
-            </div>
-          )}
-          <Btn onClick={handleLogin} disabled={loading} sx={{ width:"100%", padding:"12px", fontSize:15 }}>
-            {loading ? "Ingresando…" : "Ingresar"}
+          <Field label="Email"><Input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="usuario@sista.com.ar" /></Field>
+          <Field label="Contraseña"><Input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="••••••••" /></Field>
+          {error && <div style={{ background:C.outBg,border:`1px solid ${C.out}30`,borderRadius:8,padding:"10px 14px",color:C.out,fontSize:13,marginBottom:16 }}>{error}</div>}
+          <Btn onClick={handleLogin} disabled={loading} sx={{ width:"100%",padding:"12px",fontSize:15 }}>
+            {loading?"Ingresando…":"Ingresar"}
           </Btn>
         </Card>
-        <div style={{ textAlign:"center", color:C.muted, fontSize:12, marginTop:20 }}>
-          Solo el administrador puede crear nuevos usuarios
-        </div>
+        <div style={{ textAlign:"center",color:C.muted,fontSize:12,marginTop:20 }}>Solo el administrador puede crear nuevos usuarios</div>
       </div>
     </div>
   );
@@ -219,7 +206,7 @@ function QRScanner({ onScan, onClose }) {
   );
 }
 
-// ── User Management Modal ───────────────────────────────────────────────────
+// ── User Management ─────────────────────────────────────────────────────────
 function UserModal({ session, onClose }) {
   const [users,    setUsers]    = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -229,6 +216,7 @@ function UserModal({ session, onClose }) {
   const [newRole,  setNewRole]  = useState("operador");
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState(null);
+  const [success,  setSuccess]  = useState(null);
 
   useEffect(()=>{ loadUsers(); },[]);
 
@@ -241,43 +229,57 @@ function UserModal({ session, onClose }) {
 
   async function createUser() {
     if(!newEmail||!newPass||!newName){ setError("Completá todos los campos"); return; }
-    setSaving(true); setError(null);
+    if(newPass.length < 6){ setError("La contraseña debe tener al menos 6 caracteres"); return; }
+    setSaving(true); setError(null); setSuccess(null);
     try {
       const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method:"POST",
-        headers:{ "Content-Type":"application/json", "apikey":SUPABASE_KEY, "Authorization":`Bearer ${SUPABASE_KEY}` },
+        headers:{
+          "Content-Type":"application/json",
+          "apikey": SERVICE_KEY,
+          "Authorization": `Bearer ${SERVICE_KEY}`
+        },
         body: JSON.stringify({ email:newEmail, password:newPass, email_confirm:true })
       });
       const data = await r.json();
-      if(data.error||!data.id){ setError(data.msg||data.error||"Error al crear usuario"); setSaving(false); return; }
+      if(data.error||!data.id){ setError(data.msg||data.message||data.error||"Error al crear usuario"); setSaving(false); return; }
       await api.post("user_profiles",{ id:data.id, full_name:newName, role:newRole }, session.token);
       setNewEmail(""); setNewPass(""); setNewName(""); setNewRole("operador");
+      setSuccess(`Usuario ${newName} creado correctamente ✓`);
       await loadUsers();
-    } catch { setError("Error de conexión"); }
+    } catch(e) { setError("Error de conexión: " + e.message); }
     setSaving(false);
   }
 
   async function deleteUser(id) {
     if(!confirm("¿Eliminar este usuario?")) return;
-    await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${id}`,{ method:"DELETE", headers:{ "apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}` }});
+    await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${id}`,{
+      method:"DELETE",
+      headers:{ "apikey":SERVICE_KEY, "Authorization":`Bearer ${SERVICE_KEY}` }
+    });
     await api.del("user_profiles",id,session.token);
     await loadUsers();
   }
 
   return (
     <Modal title="Gestión de usuarios" onClose={onClose}>
-      {/* New user form */}
       <div style={{ background:C.bg,borderRadius:8,padding:16,marginBottom:24 }}>
         <div style={{ color:C.primary,fontSize:12,fontWeight:700,marginBottom:12,letterSpacing:"0.06em",textTransform:"uppercase" }}>Nuevo usuario</div>
         <Field label="Nombre completo"><Input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Juan Pérez" /></Field>
         <Field label="Email"><Input value={newEmail} onChange={e=>setNewEmail(e.target.value)} type="email" placeholder="juan@sista.com.ar" /></Field>
         <Field label="Contraseña"><Input value={newPass} onChange={e=>setNewPass(e.target.value)} type="password" placeholder="Mínimo 6 caracteres" /></Field>
-        <Field label="Rol"><Select value={newRole} onChange={e=>setNewRole(e.target.value)} options={[{value:"admin",label:"Administrador"},{value:"operador",label:"Operador"},{value:"lectura",label:"Solo lectura"}]} /></Field>
-        {error && <div style={{ color:C.out,fontSize:12,marginBottom:12 }}>{error}</div>}
+        <Field label="Rol">
+          <Select value={newRole} onChange={e=>setNewRole(e.target.value)} options={[
+            {value:"admin",   label:"Administrador"},
+            {value:"operador",label:"Operador"},
+            {value:"lectura", label:"Solo lectura"}
+          ]} />
+        </Field>
+        {error   && <div style={{ color:C.out,fontSize:12,marginBottom:12,background:C.outBg,padding:"8px 12px",borderRadius:6 }}>{error}</div>}
+        {success && <div style={{ color:C.ok, fontSize:12,marginBottom:12,background:C.okBg, padding:"8px 12px",borderRadius:6 }}>{success}</div>}
         <Btn onClick={createUser} disabled={saving} sx={{ width:"100%" }}>{saving?"Creando…":"Crear usuario"}</Btn>
       </div>
 
-      {/* User list */}
       <div style={{ color:C.muted,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10 }}>Usuarios existentes</div>
       {loading ? <div style={{ color:C.muted,fontSize:13,textAlign:"center",padding:16 }}>Cargando…</div> : (
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
@@ -288,7 +290,7 @@ function UserModal({ session, onClose }) {
                 <span style={{ background:C.primaryLt,color:ROLE_COLORS[u.role],fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20 }}>{ROLE_LABELS[u.role]}</span>
               </div>
               {u.id !== session.userId && (
-                <button onClick={()=>deleteUser(u.id)} style={{ background:C.outBg,border:`1px solid ${C.out}20`,color:C.out,padding:"5px 10px",borderRadius:6,cursor:"pointer",fontSize:12 }}>Eliminar</button>
+                <button onClick={()=>deleteUser(u.id)} style={{ background:C.outBg,border:`1px solid ${C.out}20`,color:C.out,padding:"5px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600 }}>Eliminar</button>
               )}
             </div>
           ))}
@@ -316,9 +318,9 @@ export default function App() {
   const [scanTarget, setScanTarget] = useState(null);
   const [toast,      setToast]      = useState(null);
 
-  const role = session?.profile?.role;
-  const canEdit    = role === "admin" || role === "operador";
-  const canManage  = role === "admin";
+  const role      = session?.profile?.role;
+  const canEdit   = role === "admin" || role === "operador";
+  const canManage = role === "admin";
 
   function showToast(msg, color=C.ok) { setToast({msg,color}); setTimeout(()=>setToast(null),3000); }
 
@@ -387,14 +389,20 @@ export default function App() {
 
   async function saveAdd() {
     if(!form.name||!form.sku) return; setSaving(true);
-    try { await api.post("products",{name:form.name,sku:form.sku,category:form.category,stock:+form.stock||0,min:+form.min||0,price:0,unit:form.unit||"unidad"},session.token); await loadData(); setModal(null); showToast("Producto añadido ✓"); }
-    catch { showToast("Error al guardar",C.out); } setSaving(false);
+    try {
+      await api.post("products",{name:form.name,sku:form.sku,category:form.category,stock:+form.stock||0,min:+form.min||0,price:0,unit:form.unit||"unidad"},session.token);
+      await loadData(); setModal(null); showToast("Producto añadido ✓");
+    } catch { showToast("Error al guardar",C.out); }
+    setSaving(false);
   }
 
   async function saveEdit() {
     setSaving(true);
-    try { await api.patch("products",selected.id,{name:form.name,sku:form.sku,category:form.category,stock:+form.stock,min:+form.min,unit:form.unit},session.token); await loadData(); setModal(null); showToast("Producto actualizado ✓"); }
-    catch { showToast("Error al guardar",C.out); } setSaving(false);
+    try {
+      await api.patch("products",selected.id,{name:form.name,sku:form.sku,category:form.category,stock:+form.stock,min:+form.min,unit:form.unit},session.token);
+      await loadData(); setModal(null); showToast("Producto actualizado ✓");
+    } catch { showToast("Error al guardar",C.out); }
+    setSaving(false);
   }
 
   async function saveMove() {
@@ -406,7 +414,8 @@ export default function App() {
     if(!canManage) return;
     if(!confirm("¿Eliminar este producto?")) return; setSaving(true);
     try { await api.del("products",id,session.token); await loadData(); showToast("Producto eliminado"); }
-    catch { showToast("Error al eliminar",C.out); } setSaving(false);
+    catch { showToast("Error al eliminar",C.out); }
+    setSaving(false);
   }
 
   if (!session) return <LoginScreen onLogin={handleLogin} />;
@@ -429,7 +438,6 @@ export default function App() {
           </div>
           <div style={{ display:"flex",gap:10,alignItems:"center" }}>
             {saving && <span style={{ fontSize:12,color:C.primary,animation:"pulse 1s infinite" }}>● Guardando…</span>}
-            {/* User info */}
             <div style={{ display:"flex",alignItems:"center",gap:8,background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"6px 12px" }}>
               <div style={{ width:28,height:28,borderRadius:"50%",background:C.primary,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700 }}>
                 {session.profile.full_name.charAt(0).toUpperCase()}
@@ -439,7 +447,7 @@ export default function App() {
                 <div style={{ fontSize:10,color:ROLE_COLORS[role] }}>{ROLE_LABELS[role]}</div>
               </div>
             </div>
-            {canEdit && <Btn variant="scan" onClick={()=>setModal("scanner")}>▣ Escanear QR</Btn>}
+            {canEdit   && <Btn variant="scan" onClick={()=>setModal("scanner")}>▣ Escanear QR</Btn>}
             {canManage && <Btn variant="ghost" onClick={()=>setModal("users")}>👥 Usuarios</Btn>}
             {canManage && <Btn onClick={openAdd}>+ Nuevo producto</Btn>}
             <button onClick={handleLogout} style={{ background:"none",border:`1px solid ${C.border}`,color:C.muted,padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12 }}>Salir</button>
